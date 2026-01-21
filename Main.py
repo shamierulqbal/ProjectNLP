@@ -1,10 +1,10 @@
 import streamlit as st
 import pandas as pd
-from transformers import pipeline
 import random
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+from transformers import pipeline
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(
@@ -35,7 +35,6 @@ def load_models():
         model="j-hartmann/emotion-english-distilroberta-base",
         return_all_scores=True
     )
-
     return sentiment_model, emotion_model
 
 sentiment_model, emotion_model = load_models()
@@ -51,17 +50,8 @@ Upload your dataset and analyze movie review sentiments using Deep Learning
 </p>
 """, unsafe_allow_html=True)
 
-# ---------------- SIDEBAR SETTINGS ----------------
+# ---------------- SIDEBAR ----------------
 st.sidebar.header("⚙ Experiment Settings")
-seed_input = st.sidebar.number_input("Random Seed", value=42, step=1)
-
-random.seed(seed_input)
-np.random.seed(seed_input)
-torch.manual_seed(seed_input)
-
-if torch.cuda.is_available():
-    torch.cuda.manual_seed_all(seed_input)
-
 max_rows = st.sidebar.slider("Max Reviews to Analyze", 10, 500, 200)
 
 # ---------------- FILE UPLOAD ----------------
@@ -115,7 +105,7 @@ if uploaded_file:
 
         col1, col2 = st.columns(2)
 
-        # ---------- Sentiment Pie Chart ----------
+        # Sentiment Pie Chart
         fig1, ax1 = plt.subplots()
         ax1.pie(
             sentiment_count.values(),
@@ -126,7 +116,7 @@ if uploaded_file:
         ax1.set_title("Sentiment Distribution")
         col1.pyplot(fig1)
 
-        # ---------- Emotion Bar Chart ----------
+        # Emotion Bar Chart
         fig2, ax2 = plt.subplots()
         ax2.bar(emotion_count.keys(), emotion_count.values())
         ax2.set_title("Emotion Distribution")
