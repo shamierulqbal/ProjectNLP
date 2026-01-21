@@ -1,10 +1,10 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 from transformers import pipeline
 import random
 import numpy as np
 import torch
+import matplotlib.pyplot as plt
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(
@@ -35,6 +35,7 @@ def load_models():
         model="j-hartmann/emotion-english-distilroberta-base",
         return_all_scores=True
     )
+
     return sentiment_model, emotion_model
 
 sentiment_model, emotion_model = load_models()
@@ -114,36 +115,24 @@ if uploaded_file:
 
         col1, col2 = st.columns(2)
 
-        # Sentiment Chart
-        sentiment_df = pd.DataFrame({
-            "Sentiment": sentiment_count.keys(),
-            "Count": sentiment_count.values()
-        })
-
-        fig_sentiment = px.pie(
-            sentiment_df,
-            names="Sentiment",
-            values="Count",
-            title="Sentiment Distribution",
-            hole=0.4
+        # ---------- Sentiment Pie Chart ----------
+        fig1, ax1 = plt.subplots()
+        ax1.pie(
+            sentiment_count.values(),
+            labels=sentiment_count.keys(),
+            autopct='%1.1f%%',
+            startangle=90
         )
+        ax1.set_title("Sentiment Distribution")
+        col1.pyplot(fig1)
 
-        col1.plotly_chart(fig_sentiment, use_container_width=True)
-
-        # Emotion Chart
-        emotion_df = pd.DataFrame({
-            "Emotion": emotion_count.keys(),
-            "Count": emotion_count.values()
-        })
-
-        fig_emotion = px.bar(
-            emotion_df,
-            x="Emotion",
-            y="Count",
-            title="Emotion Distribution"
-        )
-
-        col2.plotly_chart(fig_emotion, use_container_width=True)
+        # ---------- Emotion Bar Chart ----------
+        fig2, ax2 = plt.subplots()
+        ax2.bar(emotion_count.keys(), emotion_count.values())
+        ax2.set_title("Emotion Distribution")
+        ax2.set_ylabel("Count")
+        ax2.set_xlabel("Emotion")
+        col2.pyplot(fig2)
 
         # ---------------- REVIEW TABLE ----------------
         st.markdown("## 📝 Analyzed Reviews")
