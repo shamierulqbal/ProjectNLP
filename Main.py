@@ -3,66 +3,68 @@ import pandas as pd
 import plotly.express as px
 from transformers import pipeline
 
-# --- MODEL LOADING ---
-# Caching ensures the model loads once and stays in memory
+# --- AI MODEL SETUP ---
 @st.cache_resource
 def load_sentiment_model():
-    # Using DistilBERT: It's small, fast, and perfect for Streamlit Cloud
+    # DistilBERT is highly accurate for Pang & Lee's movie review style
     return pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
 
 classifier = load_sentiment_model()
 
-# --- APP INTERFACE ---
-st.set_page_config(page_title="NLP Movie Review Analyzer", layout="wide")
+# --- UI CONFIGURATION ---
+st.set_page_config(page_title="Pang & Lee Movie Sentiment", layout="wide")
 st.title("🎬 Movie Review Sentiment Analyzer")
-st.write("Upload a movie review dataset (CSV) and get instant sentiment results.")
+st.markdown("### NLP Project: Analyzing the Pang & Lee Polarity Dataset")
 
-# --- FILE UPLOADER ---
-uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
+# --- FILE UPLOAD ---
+uploaded_file = st.file_uploader("Upload your movie_reviews_dataset.csv", type=["csv"])
 
-if uploaded_file is not None:
-    # Read the data
+if uploaded_file:
     df = pd.read_csv(uploaded_file)
     
-    st.subheader("Data Preview")
-    st.dataframe(df.head())
+    col1, col2 = st.columns(2)
+    with col1:
+        text_col = st.selectbox("Select Review Text Column", df.columns)
+    with col2:
+        label_col = st.selectbox("Select Actual Label Column", df.columns)
 
-    # Column Selection
-    text_col = st.selectbox("Select the column with reviews:", df.columns)
-
-    if st.button("Analyze Sentiments"):
-        with st.spinner("Processing reviews with AI..."):
-            # Sentiment Logic
-            def get_ai_sentiment(text):
-                if pd.isna(text) or text == "": return "Neutral"
-                # Keep text within model limits (max 512 tokens)
-                result = classifier(str(text)[:512])[0]
-                return result['label']
-
-            # Apply to dataframe
-            df['Sentiment'] = df[text_col].apply(get_ai_sentiment)
-
-            # --- RESULTS DISPLAY ---
-            st.success("Analysis Finished!")
+    if st.button("🚀 Run Sentiment Analysis"):
+        with st.spinner("Analyzing reviews using Transformers..."):
             
-            # Show Metrics
-            counts = df['Sentiment'].value_counts()
-            m1, m2 = st.columns(2)
-            m1.metric("Positive Reviews", counts.get('POSITIVE', 0))
-            m2.metric("Negative Reviews", counts.get('NEGATIVE', 0))
+            # Prediction function with character limit to avoid model errors
+            def get_ai_result(text):
+                res = classifier(str(text)[:512])[0]
+                return res['label']
 
-            # Plotly Chart
-            fig = px.pie(df, names='Sentiment', color='Sentiment',
-                         color_discrete_map={'POSITIVE': 'green', 'NEGATIVE': 'red'},
-                         title="Overall Sentiment Distribution")
-            st.plotly_chart(fig)
+            df['AI_Prediction'] = df[text_col].apply(get_ai_result)
+
+            # --- RESULTS & METRICS ---
+            st.success("Analysis Complete!")
+            
+            # Calculate Accuracy
+            correct = (df['AI_Prediction'] == df[label_col]).sum()
+            accuracy = (correct / len(df)) * 100
+
+            m1, m2, m3 = st.columns(3)
+            m1.metric("Total Reviews", len(df))
+            m2.metric("Correct Predictions", correct)
+            m3.metric("Model Accuracy", f"{accuracy:.1f}%")
+
+            # --- VISUALIZATION ---
+            st.subheader("Sentiment Distribution Comparison")
+            # Creating a comparison chart between Actual vs AI
+            fig = px.histogram(df, x="AI_Prediction", color=label_col, 
+                               barmode="group", 
+                               color_discrete_map={'POS': '#2ecc71', 'NEG': '#e74c3c'},
+                               labels={'AI_Prediction': 'AI Predicted Sentiment', 'actual_label': 'Original Label'})
+            st.plotly_chart(fig, use_container_width=True)
+
+            # --- DATA TABLE ---
+            st.subheader("Detailed Review Analysis")
+            st.dataframe(df[[text_col, label_col, 'AI_Prediction']], use_container_width=True)
 
             # Download Result
-            st.write("### Final Results")
-            st.dataframe(df[[text_col, 'Sentiment']])
-            
-            csv_data = df.to_csv(index=False).encode('utf-8')
-            st.download_button("Download Analysis as CSV", data=csv_data, file_name="results.csv")
-
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button("📥 Download Full Results", data=csv, file_name="nlp_results.csv")
 else:
-    st.info("👆 Please upload a CSV file to begin.")
+    st.info("Waiting for CSV upload. Please upload the dataset converted from the Pang & Lee text files.")
