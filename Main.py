@@ -1,68 +1,37 @@
 import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
 from transformers import pipeline
 
-# ---------------- PAGE CONFIG ----------------
-st.set_page_config(page_title="Movie Sentiment Analysis", page_icon="🎬")
+# Load a pre-trained sentiment analysis model (e.g., DistilBERT fine-tuned on SST-2)
+classifier = pipeline("sentiment-analysis")
 
-# ---------------- LOAD MODEL ----------------
-@st.cache_resource
-def load_model():
-    model = pipeline("sentiment-analysis")
-    return model
+# Streamlit app title and description
+st.title("Movie Review Sentiment Analyzer")
+st.markdown("Enter a movie review below to analyze its sentiment (Positive or Negative). This app uses a pre-trained NLP model for classification.")
 
-sentiment_model = load_model()
+# Text input for the movie review
+review = st.text_area("Enter your movie review here:", height=150)
 
-# ---------------- TITLE ----------------
-st.title("🎬 Movie Review Sentiment Analysis")
-st.write("Upload your movie review dataset and analyze the sentiment using AI.")
+# Button to analyze
+if st.button("Analyze Sentiment"):
+    if review:
+        # Perform sentiment analysis
+        result = classifier(review)[0]
+        label = result['label']
+        score = result['score']
+        
+        # Display results
+        if label == "POSITIVE":
+            st.success(f"Positive Sentiment! Confidence: {score:.2f}")
+        else:
+            st.error(f"Negative Sentiment! Confidence: {score:.2f}")
+        
+        st.markdown("### Analysis Details")
+        st.write(f"Review: {review}")
+        st.write(f"Predicted Label: {label}")
+        st.write(f"Confidence Score: {score:.2f}")
+    else:
+        st.warning("Please enter a review to analyze.")
 
-# ---------------- FILE UPLOAD ----------------
-uploaded_file = st.file_uploader("Upload CSV file (must contain a column named 'review')", type=["csv"])
-
-if uploaded_file:
-    df = pd.read_csv(uploaded_file)
-
-    if "review" not in df.columns:
-        st.error("Dataset must contain a column named 'review'")
-        st.stop()
-
-    st.success("Dataset uploaded successfully!")
-    st.dataframe(df.head())
-
-    if st.button("Analyze Reviews"):
-
-        with st.spinner("Analyzing reviews..."):
-
-            sentiment_count = {"POSITIVE": 0, "NEGATIVE": 0}
-            results = []
-
-            for review in df["review"].astype(str).head(200):
-                result = sentiment_model(review)[0]
-                sentiment = result["label"]
-
-                sentiment_count[sentiment] += 1
-
-                results.append({
-                    "Review": review,
-                    "Sentiment": sentiment,
-                    "Score": round(result["score"], 3)
-                })
-
-        # ---------------- RESULTS ----------------
-        st.subheader("Sentiment Distribution")
-
-        fig, ax = plt.subplots()
-        ax.bar(sentiment_count.keys(), sentiment_count.values())
-        ax.set_ylabel("Count")
-        ax.set_xlabel("Sentiment")
-        st.pyplot(fig)
-
-        st.subheader("Analyzed Reviews")
-        result_df = pd.DataFrame(results)
-        st.dataframe(result_df)
-
-# ---------------- FOOTER ----------------
+# Footer with project info
 st.markdown("---")
-st.write("AI Sentiment Analysis Dashboard using Streamlit & HuggingFace")
+st.markdown("This is a basic NLP project for sentiment analysis on movie reviews, similar to IMDB classification tasks<sup>1</sup><sup>2</sup><sup>9</sup>.")
