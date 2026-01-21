@@ -1,37 +1,76 @@
 import streamlit as st
-from transformers import pipeline
+import pandas as pd
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+import nltk
+import plotly.express as px
 
-# Load a pre-trained sentiment analysis model (e.g., DistilBERT fine-tuned on SST-2)
-classifier = pipeline("sentiment-analysis")
+# Download the VADER lexicon (required for sentiment analysis)
+nltk.download('vader_lexicon')
 
-# Streamlit app title and description
-st.title("Movie Review Sentiment Analyzer")
-st.markdown("Enter a movie review below to analyze its sentiment (Positive or Negative). This app uses a pre-trained NLP model for classification.")
+# Initialize the analyzer
+analyzer = SentimentIntensityAnalyzer()
 
-# Text input for the movie review
-review = st.text_area("Enter your movie review here:", height=150)
-
-# Button to analyze
-if st.button("Analyze Sentiment"):
-    if review:
-        # Perform sentiment analysis
-        result = classifier(review)[0]
-        label = result['label']
-        score = result['score']
-        
-        # Display results
-        if label == "POSITIVE":
-            st.success(f"Positive Sentiment! Confidence: {score:.2f}")
+def get_sentiment(text):
+    if isinstance(text, str):
+        score = analyzer.polarity_scores(text)['compound']
+        if score >= 0.05:
+            return 'Positive'
+        elif score <= -0.05:
+            return 'Negative'
         else:
-            st.error(f"Negative Sentiment! Confidence: {score:.2f}")
-        
-        st.markdown("### Analysis Details")
-        st.write(f"Review: {review}")
-        st.write(f"Predicted Label: {label}")
-        st.write(f"Confidence Score: {score:.2f}")
-    else:
-        st.warning("Please enter a review to analyze.")
+            return 'Neutral'
+    return 'None'
 
-# Footer with project info
-st.markdown("---")
-st.markdown("This is a basic NLP project for sentiment analysis on movie reviews, similar to IMDB classification tasks<sup>1</sup><sup>2</sup><sup>9</sup>.")
+# Streamlit UI
+st.set_page_config(page_title="Movie Review Sentiment Analyzer", layout="wide")
+
+st.title("🎬 Movie Review Sentiment Analyzer")
+st.markdown("Upload a CSV file containing movie reviews to analyze their sentiment automatically.")
+
+# 1. File Upload Section
+uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
+
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file)
+    
+    st.write("### Preview of Uploaded Data")
+    st.dataframe(df.head())
+
+    # User selects the column containing the reviews
+    column_name = st.selectbox("Select the column containing the reviews:", df.columns)
+
+    if st.button("Run Sentiment Analysis"):
+        with st.spinner('Analyzing sentiments...'):
+            # Apply analysis
+            df['Sentiment'] = df[column_name].apply(get_sentiment)
+            
+            # 2. Result Section
+            st.success("Analysis Complete!")
+            
+            # Show Metrics
+            col1, col2, col3 = st.columns(3)
+            counts = df['Sentiment'].value_counts()
+            col1.metric("Positive Reviews", counts.get('Positive', 0))
+            col2.metric("Negative Reviews", counts.get('Negative', 0))
+            col3.metric("Neutral Reviews", counts.get('Neutral', 0))
+
+            # Visualizations
+            st.write("### Sentiment Distribution")
+            fig = px.pie(df, names='Sentiment', title='Review Sentiment Breakdown',
+                         color_discrete_map={'Positive':'#2ecc71', 'Negative':'#e74c3c', 'Neutral':'#95a5a6'})
+            st.plotly_chart(fig)
+
+            # Show Data with Results
+            st.write("### Detailed Results")
+            st.dataframe(df[[column_name, 'Sentiment']])
+
+            # Download Option
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="Download results as CSV",
+                data=csv,
+                file_name="sentiment_results.csv",
+                mime="text/csv",
+            )
+else:
+    st.info("Please upload a CSV file to get started.")
