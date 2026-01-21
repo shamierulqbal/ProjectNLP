@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import random
 import numpy as np
-import torch
 import matplotlib.pyplot as plt
 from transformers import pipeline
 
@@ -17,24 +16,23 @@ st.set_page_config(
 SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
-torch.manual_seed(SEED)
 
-if torch.cuda.is_available():
-    torch.cuda.manual_seed_all(SEED)
-
-# ---------------- LOAD MODELS ----------------
+# ---------------- LOAD MODELS (CPU ONLY) ----------------
 @st.cache_resource
 def load_models():
     sentiment_model = pipeline(
         "sentiment-analysis",
-        model="cardiffnlp/twitter-roberta-base-sentiment"
+        model="cardiffnlp/twitter-roberta-base-sentiment",
+        device=-1   # Force CPU
     )
 
     emotion_model = pipeline(
         "text-classification",
         model="j-hartmann/emotion-english-distilroberta-base",
-        return_all_scores=True
+        return_all_scores=True,
+        device=-1   # Force CPU
     )
+
     return sentiment_model, emotion_model
 
 sentiment_model, emotion_model = load_models()
