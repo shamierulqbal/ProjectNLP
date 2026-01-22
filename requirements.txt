@@ -1,5 +1,7 @@
 streamlit
 pandas
-plotly
+nltk
 transformers
 torch
+plotly
+tf-keras
