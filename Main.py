@@ -8,6 +8,7 @@ import random
 from nltk.corpus import stopwords
 from transformers import pipeline
 import plotly.express as px
+import plotly.graph_objects as go
 
 # =========================================
 # GLOBAL SETTINGS & REPRODUCIBILITY
@@ -22,114 +23,89 @@ def set_seed(seed=42):
 set_seed(42)
 
 # =========================================
-# PAGE CONFIGURATION & ADVANCED UI STYLING
+# PAGE CONFIGURATION & PREMIUM UI STYLING
 # =========================================
 st.set_page_config(
-    page_title="Customer Sentiment Intelligence",
+    page_title="Intelligence Analytics Dashboard",
     layout="wide"
 )
 
-# Custom CSS for Deep Blue Professional Theme
+# Advanced CSS for modern Dashboard UI
 st.markdown("""
     <style>
-    /* Main App Background */
+    /* Main Background and Sidebar */
     .stApp {
-        background-color: #0a192f;
-        color: #e6f1ff;
+        background-color: #0d1117;
+        color: #c9d1d9;
     }
-
-    /* Sidebar Styling */
     section[data-testid="stSidebar"] {
-        background-color: #112240 !important;
-        border-right: 1px solid #233554;
+        background-color: #161b22 !important;
+        border-right: 1px solid #30363d;
     }
 
-    /* Metric Card Styling - Dark Blue Glassmorphism */
-    [data-testid="metric-container"] {
-        background-color: #112240;
-        border: 1px solid #233554;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    /* Metric Card Styling - Mimicking the Reference Image */
+    div[data-testid="metric-container"] {
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        transition: transform 0.2s ease-in-out;
+    }
+    div[data-testid="metric-container"]:hover {
+        transform: translateY(-5px);
+        border-color: #58a6ff;
     }
 
-    /* Metric Text Colors */
+    /* Typography for Metrics */
     [data-testid="stMetricValue"] {
-        color: #64ffda !important;
-        font-family: 'Inter', sans-serif;
-        font-weight: 700;
+        color: #58a6ff !important;
+        font-size: 2.5rem !important;
+        font-weight: 800 !important;
     }
-
     [data-testid="stMetricLabel"] p {
-        color: #8892b0 !important;
-        font-size: 14px !important;
+        color: #8b949e !important;
+        font-size: 0.9rem !important;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 1.5px;
     }
 
-    /* Tab Styling */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 24px;
-        background-color: transparent;
-    }
-
-    .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        background-color: transparent;
-        border-radius: 4px;
-        color: #8892b0;
-        font-weight: 600;
-    }
-
-    .stTabs [aria-selected="true"] {
-        color: #64ffda !important;
-        border-bottom-color: #64ffda !important;
-    }
-
-    /* Button Styling */
+    /* Professional Button Styling */
     div.stButton > button:first-child {
-        background-color: #64ffda;
-        color: #0a192f;
-        font-weight: bold;
-        border: none;
-        padding: 10px 24px;
-        border-radius: 4px;
-        transition: all 0.3s ease;
-    }
-
-    div.stButton > button:hover {
-        background-color: #4cd3b5;
-        box-shadow: 0 0 15px rgba(100, 255, 218, 0.4);
-    }
-
-    /* Dataframe & Table Adjustments */
-    .stDataFrame {
-        border: 1px solid #233554;
+        background: linear-gradient(135deg, #1f6feb 0%, #1158c7 100%);
+        color: white;
         border-radius: 8px;
-    }
-    
-    /* Input field styling */
-    .stTextArea textarea {
-        background-color: #112240 !important;
-        color: #ccd6f6 !important;
-        border: 1px solid #233554 !important;
+        border: none;
+        font-weight: 600;
+        padding: 0.6rem 2rem;
+        width: 100%;
     }
 
-    hr {
-        border-top: 1px solid #233554;
+    /* Tabs Customization */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px 8px 0 0;
+        padding: 10px 20px;
+        color: #8b949e;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #1f6feb !important;
+        color: white !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
 # =========================================
-# DATA & MODEL LOADING (CACHED)
+# MODELS & UTILS
 # =========================================
 @st.cache_resource
-def load_resources():
+def load_engine():
     nltk.download('stopwords')
     stop_words = set(stopwords.words('english'))
-    
-    # Model: RoBERTa for Neutral, Positive, and Negative detection
     sentiment_pipe = pipeline(
         "sentiment-analysis", 
         model="cardiffnlp/twitter-roberta-base-sentiment-latest",
@@ -137,18 +113,9 @@ def load_resources():
     )
     return stop_words, sentiment_pipe
 
-STOP_WORDS, SENTIMENT_MODEL = load_resources()
+STOP_WORDS, SENTIMENT_MODEL = load_engine()
 
-# =========================================
-# CORE FUNCTIONS
-# =========================================
-def clean_text(text):
-    text = str(text).lower()
-    text = re.sub(r"http\S+|www\S+|[^a-z\s]", "", text)
-    tokens = [word for word in text.split() if word not in STOP_WORDS]
-    return " ".join(tokens)
-
-def process_sentiment_label(label):
+def process_label(label):
     label = label.lower()
     if 'positive' in label: return 'Positive'
     if 'negative' in label: return 'Negative'
@@ -157,88 +124,120 @@ def process_sentiment_label(label):
 # =========================================
 # MAIN DASHBOARD INTERFACE
 # =========================================
-st.title("Sentiment Intelligence Systems")
-st.markdown("<p style='color: #8892b0;'>Advanced Neural Network Analysis for Customer Feedback</p>", unsafe_allow_html=True)
+st.title("Analytics Intelligence Dashboard")
+st.markdown("---")
 
-tab_manual, tab_batch = st.tabs(["Individual Analysis", "Batch Dataset Processing"])
+tab_manual, tab_batch = st.tabs(["Real-time Analysis", "Dataset Intelligence"])
 
-# --- TAB 1: INDIVIDUAL ANALYSIS ---
+# --- INDIVIDUAL ANALYSIS ---
 with tab_manual:
-    col_in, col_out = st.columns(2, gap="large")
-    with col_in:
-        st.subheader("Input Stream")
-        user_input = st.text_area("Review Content", height=180, placeholder="Type or paste customer feedback here...")
-        run_single = st.button("Run Intelligence Check")
+    col_input, col_viz = st.columns([1, 1], gap="large")
     
-    if run_single and user_input:
-        res = SENTIMENT_MODEL(user_input[:512])[0]
-        label = process_sentiment_label(res['label'])
-        with col_out:
-            st.subheader("Classification Outcome")
-            st.metric("Detected Sentiment", label)
-            st.metric("Model Confidence", f"{res['score']:.2%}")
+    with col_input:
+        st.subheader("Data Input")
+        user_input = st.text_area("Customer Content", height=200, placeholder="Input text for neural processing...")
+        if st.button("Initialize Analysis"):
+            if user_input:
+                res = SENTIMENT_MODEL(user_input[:512])[0]
+                label = process_label(res['label'])
+                score = res['score']
+                
+                with col_viz:
+                    st.subheader("Neural Outcome")
+                    c1, c2 = st.columns(2)
+                    c1.metric("Classification", label)
+                    c2.metric("Confidence", f"{score:.2%}")
+                    
+                    # Modern Gauge Chart
+                    fig_gauge = go.Figure(go.Indicator(
+                        mode = "gauge+number",
+                        value = score * 100,
+                        title = {'text': "Certainty Score", 'font': {'color': "#8b949e"}},
+                        gauge = {
+                            'axis': {'range': [None, 100], 'tickcolor': "#8b949e"},
+                            'bar': {'color': "#1f6feb"},
+                            'bgcolor': "#161b22",
+                            'borderwidth': 2,
+                            'bordercolor': "#30363d",
+                            'steps': [
+                                {'range': [0, 50], 'color': '#21262d'},
+                                {'range': [50, 100], 'color': '#30363d'}]
+                        }
+                    ))
+                    fig_gauge.update_layout(paper_bgcolor='rgba(0,0,0,0)', font={'color': "#c9d1d9"}, height=300)
+                    st.plotly_chart(fig_gauge, use_container_width=True)
 
-# --- TAB 2: BATCH PROCESS ---
+# --- BATCH PROCESS ---
 with tab_batch:
-    uploaded_file = st.sidebar.file_uploader("Upload CSV Asset", type=["csv"])
+    uploaded_file = st.sidebar.file_uploader("Upload Core Asset (CSV)", type=["csv"])
     
     if uploaded_file:
         df = pd.read_csv(uploaded_file)
         
-        st.subheader("Schema Mapping")
+        st.subheader("Asset Configuration")
         col_c1, col_c2 = st.columns(2)
         with col_c1:
-            id_col = st.selectbox("Customer Identifier Column", df.columns)
+            id_col = st.selectbox("Identifier Column", df.columns)
         with col_c2:
-            text_col = st.selectbox("Review Text Column", df.columns)
+            text_col = st.selectbox("Content Column", df.columns)
             
-        if st.button("Execute Pipeline"):
-            with st.spinner("Analyzing high-volume data..."):
-                # Optimize speed using list processing
+        if st.button("Process Intelligence Pipeline"):
+            with st.spinner("Processing Large-scale Asset..."):
                 texts = df[text_col].astype(str).tolist()
                 results = SENTIMENT_MODEL(texts, truncation=True, batch_size=8)
                 
-                df['Sentiment'] = [process_sentiment_label(r['label']) for r in results]
+                df['Sentiment'] = [process_label(r['label']) for r in results]
                 df['Confidence'] = [r['score'] for r in results]
                 
-                # Visual Metrics Section
-                st.divider()
+                # --- METRIC CARDS SECTION ---
+                st.markdown("### Executive Summary")
                 m1, m2, m3, m4 = st.columns(4)
-                m1.metric("Total Volume", len(df))
-                m2.metric("Positive Hits", len(df[df['Sentiment'] == 'Positive']))
-                m3.metric("Neutral Hits", len(df[df['Sentiment'] == 'Neutral']))
-                m4.metric("Negative Hits", len(df[df['Sentiment'] == 'Negative']))
+                m1.metric("Total Processing", len(df))
+                m2.metric("Positive Volume", len(df[df['Sentiment'] == 'Positive']))
+                m3.metric("Neutral Volume", len(df[df['Sentiment'] == 'Neutral']))
+                m4.metric("Negative Volume", len(df[df['Sentiment'] == 'Negative']))
                 
-                # Visual Analytics
-                st.subheader("Sentiment Distribution Profile")
-                dist_df = df['Sentiment'].value_counts().reset_index()
-                dist_df.columns = ['Label', 'Count']
+                # --- VISUAL CHARTS SECTION ---
+                st.markdown("---")
+                chart_left, chart_right = st.columns(2)
                 
-                fig = px.bar(
-                    dist_df, x='Label', y='Count', color='Label',
-                    color_discrete_map={'Positive': '#64ffda', 'Neutral': '#8892b0', 'Negative': '#f07178'},
-                    template="plotly_dark"
-                )
-                fig.update_layout(
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    font_color='#ccd6f6'
-                )
-                st.plotly_chart(fig, use_container_width=True)
+                with chart_left:
+                    st.subheader("Sentiment Distribution")
+                    fig_pie = px.pie(
+                        df, names='Sentiment', 
+                        hole=0.6,
+                        color='Sentiment',
+                        color_discrete_map={'Positive': '#238636', 'Neutral': '#8b949e', 'Negative': '#da3633'}
+                    )
+                    fig_pie.update_layout(paper_bgcolor='rgba(0,0,0,0)', legend_font_color="#c9d1d9")
+                    st.plotly_chart(fig_pie, use_container_width=True)
+                
+                with chart_right:
+                    st.subheader("Confidence Spread")
+                    fig_hist = px.histogram(
+                        df, x='Confidence', color='Sentiment',
+                        marginal="box", barmode="overlay",
+                        color_discrete_map={'Positive': '#238636', 'Neutral': '#8b949e', 'Negative': '#da3633'}
+                    )
+                    fig_hist.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="#c9d1d9")
+                    st.plotly_chart(fig_hist, use_container_width=True)
 
-                st.subheader("Aggregated Results Table")
-                # Structure: ID, Text, Sentiment, Confidence
-                result_display = df[[id_col, text_col, 'Sentiment', 'Confidence']]
-                st.dataframe(result_display, use_container_width=True, hide_index=True)
+                # --- DATA TABLE ---
+                st.subheader("Detailed Intelligent Ledger")
+                st.dataframe(
+                    df[[id_col, text_col, 'Sentiment', 'Confidence']], 
+                    use_container_width=True, 
+                    hide_index=True
+                )
                 
-                # Export functionality
-                csv = result_display.to_csv(index=False).encode('utf-8')
-                st.download_button("Export Processed Dataset", csv, "processed_intelligence.csv", "text/csv")
+                # Export Button
+                csv = df[[id_col, text_col, 'Sentiment', 'Confidence']].to_csv(index=False).encode('utf-8')
+                st.download_button("Export Processed Ledger", csv, "intelligence_report.csv", "text/csv")
     else:
-        st.info("Awaiting CSV asset upload via the control panel.")
+        st.info("System Ready. Please upload a CSV dataset via the Control Panel to begin.")
 
 # =========================================
 # FOOTER
 # =========================================
-st.markdown("<br><hr>", unsafe_allow_html=True)
-st.caption("Intelligence Core: RoBERTa Base | Seed: 42 | Response Mode: High-Speed Batching")
+st.markdown("<br><br><br>", unsafe_allow_html=True)
+st.caption("Intelligence Core 3.0 | Secure Analysis Mode | 2026 Enterprise Edition")
