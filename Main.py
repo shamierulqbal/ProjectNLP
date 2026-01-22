@@ -22,18 +22,40 @@ def set_seed(seed=42):
 set_seed(42)
 
 # =========================================
-# PAGE CONFIGURATION
+# PAGE CONFIGURATION & CUSTOM CSS
 # =========================================
 st.set_page_config(
     page_title="Customer Sentiment Intelligence",
     layout="wide"
 )
 
-# Professional CSS
+# Professional CSS - Diperkemas untuk tulisan HITAM dalam metrik
 st.markdown("""
     <style>
-    .stMetric { background-color: #ffffff; border: 1px solid #e6e9ef; padding: 10px; border-radius: 5px; }
-    div.stButton > button:first-child { background-color: #00416d; color: white; width: 100%; }
+    /* Mengubah warna latar belakang aplikasi (gelap) */
+    .stApp {
+        background-color: #0e1117;
+    }
+    
+    /* Mengubah kotak metrik menjadi putih dengan tulisan HITAM */
+    [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {
+        color: #000000 !important;
+    }
+    
+    [data-testid="metric-container"] {
+        background-color: #ffffff;
+        border: 1px solid #e6e9ef;
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+    }
+    
+    /* Warna butang profesional */
+    div.stButton > button:first-child {
+        background-color: #00416d;
+        color: white;
+        border-radius: 5px;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -44,8 +66,6 @@ st.markdown("""
 def load_resources():
     nltk.download('stopwords')
     stop_words = set(stopwords.words('english'))
-    
-    # Multi-class model: 0 -> Negative, 1 -> Neutral, 2 -> Positive
     sentiment_pipe = pipeline(
         "sentiment-analysis", 
         model="cardiffnlp/twitter-roberta-base-sentiment-latest",
@@ -65,7 +85,6 @@ def clean_text(text):
     return " ".join(tokens)
 
 def process_sentiment_label(label):
-    # Mapping model output to professional labels
     label = label.lower()
     if 'positive' in label: return 'Positive'
     if 'negative' in label: return 'Negative'
@@ -78,7 +97,6 @@ st.title("Customer Sentiment Intelligence")
 
 tab_manual, tab_batch = st.tabs(["Individual Analysis", "Batch Dataset Processing"])
 
-# --- INDIVIDUAL ANALYSIS ---
 with tab_manual:
     col_in, col_out = st.columns(2, gap="large")
     with col_in:
@@ -92,7 +110,6 @@ with tab_manual:
             st.metric("Sentiment", label)
             st.metric("Confidence Score", f"{res['score']:.2%}")
 
-# --- BATCH PROCESS ---
 with tab_batch:
     uploaded_file = st.sidebar.file_uploader("Upload CSV", type=["csv"])
     
@@ -107,16 +124,14 @@ with tab_batch:
             text_col = st.selectbox("Select Review Text Column", df.columns)
             
         if st.button("Execute Batch Analysis"):
-            with st.spinner("Processing large-scale sentiment data..."):
-                # Speed Optimization: List comprehension
+            with st.spinner("Processing..."):
                 texts = df[text_col].astype(str).tolist()
                 results = SENTIMENT_MODEL(texts, truncation=True, batch_size=8)
                 
-                # Extract and format results
                 df['Sentiment'] = [process_sentiment_label(r['label']) for r in results]
                 df['Confidence'] = [r['score'] for r in results]
                 
-                # Display Summary Metrics
+                # METRICS SECTION - Tulisan akan berwarna HITAM
                 st.divider()
                 m1, m2, m3, m4 = st.columns(4)
                 m1.metric("Total Reviews", len(df))
@@ -124,29 +139,14 @@ with tab_batch:
                 m3.metric("Neutral", len(df[df['Sentiment'] == 'Neutral']))
                 m4.metric("Negative", len(df[df['Sentiment'] == 'Negative']))
                 
-                # Distribution Chart
                 st.subheader("Sentiment Distribution")
                 dist_df = df['Sentiment'].value_counts().reset_index()
                 dist_df.columns = ['Label', 'Count']
-                fig = px.bar(dist_df, x='Label', y='Count', 
-                             color='Label',
-                             color_discrete_map={'Positive': '#2ecc71', 'Neutral': '#95a5a6', 'Negative': '#e74c3c'},
-                             template="plotly_white")
+                fig = px.bar(dist_df, x='Label', y='Count', color='Label',
+                             color_discrete_map={'Positive': '#2ecc71', 'Neutral': '#95a5a6', 'Negative': '#e74c3c'})
                 st.plotly_chart(fig, use_container_width=True)
 
-                # Final Table Result (Customer ID, Review Text, Sentiment)
                 st.subheader("Analysis Results")
-                result_display = df[[id_col, text_col, 'Sentiment', 'Confidence']]
-                st.dataframe(result_display, use_container_width=True, hide_index=True)
-                
-                # Export option
-                csv = result_display.to_csv(index=False).encode('utf-8')
-                st.download_button("Download Processed Data", csv, "sentiment_results.csv", "text/csv")
+                st.dataframe(df[[id_col, text_col, 'Sentiment', 'Confidence']], use_container_width=True, hide_index=True)
     else:
         st.info("Upload a CSV file in the sidebar to begin batch analysis.")
-
-# =========================================
-# FOOTER
-# =========================================
-st.divider()
-st.caption("Engine: RoBERTa-base-sentiment | Seed: 42 | Optimized for Speed")
