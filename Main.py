@@ -26,32 +26,14 @@ set_seed(42)
 # =========================================
 st.set_page_config(
     page_title="Customer Sentiment Intelligence",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
-# Professional CSS for a clean dashboard look
+# Professional CSS
 st.markdown("""
     <style>
-    .reportview-container {
-        background: #F0F2F6;
-    }
-    .main {
-        padding-top: 2rem;
-    }
-    div.stButton > button:first-child {
-        width: 100%;
-        border-radius: 4px;
-        height: 3em;
-        background-color: #00416d;
-        color: white;
-    }
-    .metric-container {
-        border: 1px solid #e6e9ef;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        background-color: white;
-    }
+    .stMetric { background-color: #ffffff; border: 1px solid #e6e9ef; padding: 10px; border-radius: 5px; }
+    div.stButton > button:first-child { background-color: #00416d; color: white; width: 100%; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -63,22 +45,15 @@ def load_resources():
     nltk.download('stopwords')
     stop_words = set(stopwords.words('english'))
     
-    # Using 'fast' tokenizers and specific revisions for speed
+    # Multi-class model: 0 -> Negative, 1 -> Neutral, 2 -> Positive
     sentiment_pipe = pipeline(
         "sentiment-analysis", 
-        model="distilbert-base-uncased-finetuned-sst-2-english",
-        device=-1 # Set to 0 if GPU is available on your deployment
-    )
-    
-    emotion_pipe = pipeline(
-        "text-classification", 
-        model="j-hartmann/emotion-english-distilroberta-base", 
-        return_all_scores=True,
+        model="cardiffnlp/twitter-roberta-base-sentiment-latest",
         device=-1
     )
-    return stop_words, sentiment_pipe, emotion_pipe
+    return stop_words, sentiment_pipe
 
-STOP_WORDS, SENTIMENT_MODEL, EMOTION_MODEL = load_resources()
+STOP_WORDS, SENTIMENT_MODEL = load_resources()
 
 # =========================================
 # CORE FUNCTIONS
@@ -89,130 +64,89 @@ def clean_text(text):
     tokens = [word for word in text.split() if word not in STOP_WORDS]
     return " ".join(tokens)
 
-def get_analysis(text):
-    # Combined function to reduce redundant calls
-    truncated_text = text[:512]
-    sentiment = SENTIMENT_MODEL(truncated_text)[0]
-    emotions = EMOTION_MODEL(truncated_text)[0]
-    return {
-        'sentiment': sentiment['label'],
-        'confidence': sentiment['score'],
-        'emotions': {e['label']: e['score'] for e in emotions}
-    }
-
-# =========================================
-# SIDEBAR NAVIGATION
-# =========================================
-st.sidebar.title("Analysis Control Panel")
-st.sidebar.markdown("Upload your dataset for batch processing or use the main panel for manual entry.")
-
-uploaded_file = st.sidebar.file_uploader("Upload CSV Dataset", type=["csv"])
+def process_sentiment_label(label):
+    # Mapping model output to professional labels
+    label = label.lower()
+    if 'positive' in label: return 'Positive'
+    if 'negative' in label: return 'Negative'
+    return 'Neutral'
 
 # =========================================
 # MAIN INTERFACE
 # =========================================
 st.title("Customer Sentiment Intelligence")
-st.markdown("Professional NLP Tool for Customer Feedback Analysis")
 
-tab_manual, tab_batch = st.tabs(["Manual Entry Analysis", "Batch Process Dataset"])
+tab_manual, tab_batch = st.tabs(["Individual Analysis", "Batch Dataset Processing"])
 
-# --- MANUAL ENTRY ---
+# --- INDIVIDUAL ANALYSIS ---
 with tab_manual:
-    col_input, col_output = st.columns([1, 1], gap="large")
+    col_in, col_out = st.columns(2, gap="large")
+    with col_in:
+        user_input = st.text_area("Review Text", height=150, placeholder="Enter review...")
+        run_single = st.button("Analyze Review")
     
-    with col_input:
-        st.subheader("Input Text")
-        user_input = st.text_area(
-            "Paste customer review below:",
-            height=200,
-            placeholder="Enter review text here..."
-        )
-        analyze_btn = st.button("Run Analysis")
-
-    if analyze_btn and user_input:
-        results = get_analysis(user_input)
-        
-        with col_output:
-            st.subheader("Analysis Summary")
-            
-            # Metric Display
-            m_col1, m_col2 = st.columns(2)
-            with m_col1:
-                st.metric("Primary Sentiment", results['sentiment'])
-            with m_col2:
-                st.metric("Confidence Score", f"{results['confidence']:.2%}")
-
-            # Emotion Distribution
-            emo_df = pd.DataFrame(results['emotions'].items(), columns=['Emotion', 'Intensity'])
-            fig = px.bar(
-                emo_df, 
-                x='Intensity', 
-                y='Emotion', 
-                orientation='h',
-                title="Emotion Probability Distribution",
-                template="plotly_white",
-                color_discrete_sequence=['#00416d']
-            )
-            fig.update_layout(margin=dict(l=0, r=0, t=40, b=0), height=300)
-            st.plotly_chart(fig, use_container_width=True)
+    if run_single and user_input:
+        res = SENTIMENT_MODEL(user_input[:512])[0]
+        label = process_sentiment_label(res['label'])
+        with col_out:
+            st.metric("Sentiment", label)
+            st.metric("Confidence Score", f"{res['score']:.2%}")
 
 # --- BATCH PROCESS ---
 with tab_batch:
+    uploaded_file = st.sidebar.file_uploader("Upload CSV", type=["csv"])
+    
     if uploaded_file:
         df = pd.read_csv(uploaded_file)
-        text_column = st.selectbox("Select Column for Analysis", df.columns)
         
+        st.subheader("Configuration")
+        col_c1, col_c2 = st.columns(2)
+        with col_c1:
+            id_col = st.selectbox("Select Customer ID Column", df.columns)
+        with col_c2:
+            text_col = st.selectbox("Select Review Text Column", df.columns)
+            
         if st.button("Execute Batch Analysis"):
-            with st.spinner("Processing Dataset..."):
-                # Fast processing using list comprehension for better performance over .apply()
-                raw_texts = df[text_column].astype(str).tolist()
-                cleaned_texts = [clean_text(t) for t in raw_texts]
+            with st.spinner("Processing large-scale sentiment data..."):
+                # Speed Optimization: List comprehension
+                texts = df[text_col].astype(str).tolist()
+                results = SENTIMENT_MODEL(texts, truncation=True, batch_size=8)
                 
-                # Perform Sentiment Analysis
-                results = SENTIMENT_MODEL(cleaned_texts, truncation=True)
-                df['Sentiment'] = [r['label'] for r in results]
+                # Extract and format results
+                df['Sentiment'] = [process_sentiment_label(r['label']) for r in results]
                 df['Confidence'] = [r['score'] for r in results]
-
-                # Visual Summary
-                st.subheader("Aggregate Results")
-                c1, c2, c3 = st.columns(3)
                 
-                total = len(df)
-                pos_pct = (df['Sentiment'] == 'POSITIVE').sum() / total
-                
-                c1.metric("Total Records", total)
-                c2.metric("Positive Ratio", f"{pos_pct:.1%}")
-                c3.metric("Avg Confidence", f"{df['Confidence'].mean():.2%}")
-
+                # Display Summary Metrics
                 st.divider()
-
-                # Graphs
-                g1, g2 = st.columns(2)
-                with g1:
-                    fig_pie = px.pie(
-                        df, names='Sentiment', 
-                        title="Sentiment Share",
-                        color_discrete_map={'POSITIVE':'#00416d', 'NEGATIVE':'#d1d1d1'},
-                        hole=0.5
-                    )
-                    st.plotly_chart(fig_pie, use_container_width=True)
+                m1, m2, m3, m4 = st.columns(4)
+                m1.metric("Total Reviews", len(df))
+                m2.metric("Positive", len(df[df['Sentiment'] == 'Positive']))
+                m3.metric("Neutral", len(df[df['Sentiment'] == 'Neutral']))
+                m4.metric("Negative", len(df[df['Sentiment'] == 'Negative']))
                 
-                with g2:
-                    fig_hist = px.histogram(
-                        df, x='Confidence', 
-                        title="Confidence Distribution",
-                        template="plotly_white",
-                        color_discrete_sequence=['#00416d']
-                    )
-                    st.plotly_chart(fig_hist, use_container_width=True)
+                # Distribution Chart
+                st.subheader("Sentiment Distribution")
+                dist_df = df['Sentiment'].value_counts().reset_index()
+                dist_df.columns = ['Label', 'Count']
+                fig = px.bar(dist_df, x='Label', y='Count', 
+                             color='Label',
+                             color_discrete_map={'Positive': '#2ecc71', 'Neutral': '#95a5a6', 'Negative': '#e74c3c'},
+                             template="plotly_white")
+                st.plotly_chart(fig, use_container_width=True)
 
-                st.subheader("Data Preview")
-                st.dataframe(df[[text_column, 'Sentiment', 'Confidence']].head(50), use_container_width=True)
+                # Final Table Result (Customer ID, Review Text, Sentiment)
+                st.subheader("Analysis Results")
+                result_display = df[[id_col, text_col, 'Sentiment', 'Confidence']]
+                st.dataframe(result_display, use_container_width=True, hide_index=True)
+                
+                # Export option
+                csv = result_display.to_csv(index=False).encode('utf-8')
+                st.download_button("Download Processed Data", csv, "sentiment_results.csv", "text/csv")
     else:
-        st.info("Please upload a CSV file via the sidebar to enable batch processing.")
+        st.info("Upload a CSV file in the sidebar to begin batch analysis.")
 
 # =========================================
 # FOOTER
 # =========================================
 st.divider()
-st.caption("Intelligence System | Version 2.0 | Processed using DistilBERT")
+st.caption("Engine: RoBERTa-base-sentiment | Seed: 42 | Optimized for Speed")
