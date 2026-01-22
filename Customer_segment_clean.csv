@@ -1,0 +1,201 @@
+customer_id,review_text,sentiment
+1,very disappointed with the quality.,negative
+2,fast delivery and great packaging.,positive
+3,very disappointed with the quality.,negative
+4,product stopped working after few days.,negative
+5,neutral about the quality.,neutral
+6,"amazing experience, highly recommend!",positive
+7,great value for money.,positive
+8,excellent product! exceeded expectations.,positive
+9,"product is okay, nothing special.",neutral
+10,great value for money.,positive
+11,not worth the price.,negative
+12,very disappointed with the quality.,negative
+13,"amazing experience, highly recommend!",positive
+14,"amazing experience, highly recommend!",positive
+15,customer service was unhelpful.,negative
+16,product stopped working after few days.,negative
+17,late delivery and poor packaging.,negative
+18,neutral about the quality.,neutral
+19,excellent product! exceeded expectations.,positive
+20,late delivery and poor packaging.,negative
+21,"amazing experience, highly recommend!",positive
+22,excellent product! exceeded expectations.,positive
+23,"amazing experience, highly recommend!",positive
+24,customer service was unhelpful.,negative
+25,very disappointed with the quality.,negative
+26,"amazing experience, highly recommend!",positive
+27,average experience overall.,neutral
+28,product stopped working after few days.,negative
+29,works fine but could be better.,neutral
+30,fast delivery and great packaging.,positive
+31,great value for money.,positive
+32,"amazing experience, highly recommend!",positive
+33,fast delivery and great packaging.,positive
+34,product stopped working after few days.,negative
+35,works fine but could be better.,neutral
+36,neutral about the quality.,neutral
+37,"amazing experience, highly recommend!",positive
+38,customer service was unhelpful.,negative
+39,not worth the price.,negative
+40,product stopped working after few days.,negative
+41,not worth the price.,negative
+42,"amazing experience, highly recommend!",positive
+43,works fine but could be better.,neutral
+44,fast delivery and great packaging.,positive
+45,not worth the price.,negative
+46,excellent product! exceeded expectations.,positive
+47,excellent product! exceeded expectations.,positive
+48,"amazing experience, highly recommend!",positive
+49,average experience overall.,neutral
+50,fast delivery and great packaging.,positive
+51,"amazing experience, highly recommend!",positive
+52,product stopped working after few days.,negative
+53,late delivery and poor packaging.,negative
+54,fast delivery and great packaging.,positive
+55,excellent product! exceeded expectations.,positive
+56,"amazing experience, highly recommend!",positive
+57,very satisfied with the quality.,positive
+58,"product is okay, nothing special.",neutral
+59,product stopped working after few days.,negative
+60,excellent product! exceeded expectations.,positive
+61,"product is okay, nothing special.",neutral
+62,"amazing experience, highly recommend!",positive
+63,great value for money.,positive
+64,fast delivery and great packaging.,positive
+65,excellent product! exceeded expectations.,positive
+66,fast delivery and great packaging.,positive
+67,customer service was unhelpful.,negative
+68,product stopped working after few days.,negative
+69,late delivery and poor packaging.,negative
+70,not worth the price.,negative
+71,works fine but could be better.,neutral
+72,late delivery and poor packaging.,negative
+73,works fine but could be better.,neutral
+74,not worth the price.,negative
+75,great value for money.,positive
+76,"amazing experience, highly recommend!",positive
+77,very satisfied with the quality.,positive
+78,customer service was unhelpful.,negative
+79,very disappointed with the quality.,negative
+80,very disappointed with the quality.,negative
+81,very satisfied with the quality.,positive
+82,"delivery was fine, product is decent.",neutral
+83,customer service was unhelpful.,negative
+84,very disappointed with the quality.,negative
+85,late delivery and poor packaging.,negative
+86,very satisfied with the quality.,positive
+87,very satisfied with the quality.,positive
+88,great value for money.,positive
+89,average experience overall.,neutral
+90,not worth the price.,negative
+91,"amazing experience, highly recommend!",positive
+92,average experience overall.,neutral
+93,excellent product! exceeded expectations.,positive
+94,"delivery was fine, product is decent.",neutral
+95,customer service was unhelpful.,negative
+96,fast delivery and great packaging.,positive
+97,fast delivery and great packaging.,positive
+98,very disappointed with the quality.,negative
+99,product stopped working after few days.,negative
+100,product stopped working after few days.,negative
+101,"amazing experience, highly recommend!",positive
+102,customer service was unhelpful.,negative
+103,fast delivery and great packaging.,positive
+104,very satisfied with the quality.,positive
+105,product stopped working after few days.,negative
+106,works fine but could be better.,neutral
+107,late delivery and poor packaging.,negative
+108,excellent product! exceeded expectations.,positive
+109,late delivery and poor packaging.,negative
+110,"product is okay, nothing special.",neutral
+111,"product is okay, nothing special.",neutral
+112,"amazing experience, highly recommend!",positive
+113,"amazing experience, highly recommend!",positive
+114,very satisfied with the quality.,positive
+115,late delivery and poor packaging.,negative
+116,not worth the price.,negative
+117,"product is okay, nothing special.",neutral
+118,great value for money.,positive
+119,product stopped working after few days.,negative
+120,late delivery and poor packaging.,negative
+121,fast delivery and great packaging.,positive
+122,not worth the price.,negative
+123,great value for money.,positive
+124,very satisfied with the quality.,positive
+125,very disappointed with the quality.,negative
+126,fast delivery and great packaging.,positive
+127,neutral about the quality.,neutral
+128,very satisfied with the quality.,positive
+129,great value for money.,positive
+130,very disappointed with the quality.,negative
+131,very satisfied with the quality.,positive
+132,excellent product! exceeded expectations.,positive
+133,fast delivery and great packaging.,positive
+134,customer service was unhelpful.,negative
+135,product stopped working after few days.,negative
+136,product stopped working after few days.,negative
+137,late delivery and poor packaging.,negative
+138,very disappointed with the quality.,negative
+139,great value for money.,positive
+140,great value for money.,positive
+141,customer service was unhelpful.,negative
+142,product stopped working after few days.,negative
+143,"amazing experience, highly recommend!",positive
+144,late delivery and poor packaging.,negative
+145,"product is okay, nothing special.",neutral
+146,late delivery and poor packaging.,negative
+147,"delivery was fine, product is decent.",neutral
+148,neutral about the quality.,neutral
+149,very disappointed with the quality.,negative
+150,late delivery and poor packaging.,negative
+151,neutral about the quality.,neutral
+152,great value for money.,positive
+153,fast delivery and great packaging.,positive
+154,customer service was unhelpful.,negative
+155,"amazing experience, highly recommend!",positive
+156,"amazing experience, highly recommend!",positive
+157,product stopped working after few days.,negative
+158,very disappointed with the quality.,negative
+159,product stopped working after few days.,negative
+160,late delivery and poor packaging.,negative
+161,not worth the price.,negative
+162,customer service was unhelpful.,negative
+163,great value for money.,positive
+164,product stopped working after few days.,negative
+165,very disappointed with the quality.,negative
+166,fast delivery and great packaging.,positive
+167,"delivery was fine, product is decent.",neutral
+168,very disappointed with the quality.,negative
+169,"amazing experience, highly recommend!",positive
+170,fast delivery and great packaging.,positive
+171,customer service was unhelpful.,negative
+172,very disappointed with the quality.,negative
+173,"product is okay, nothing special.",neutral
+174,customer service was unhelpful.,negative
+175,fast delivery and great packaging.,positive
+176,late delivery and poor packaging.,negative
+177,"amazing experience, highly recommend!",positive
+178,not worth the price.,negative
+179,neutral about the quality.,neutral
+180,very satisfied with the quality.,positive
+181,neutral about the quality.,neutral
+182,"delivery was fine, product is decent.",neutral
+183,great value for money.,positive
+184,"amazing experience, highly recommend!",positive
+185,neutral about the quality.,neutral
+186,"product is okay, nothing special.",neutral
+187,"amazing experience, highly recommend!",positive
+188,customer service was unhelpful.,negative
+189,very disappointed with the quality.,negative
+190,excellent product! exceeded expectations.,positive
+191,"amazing experience, highly recommend!",positive
+192,average experience overall.,neutral
+193,not worth the price.,negative
+194,customer service was unhelpful.,negative
+195,customer service was unhelpful.,negative
+196,"product is okay, nothing special.",neutral
+197,very disappointed with the quality.,negative
+198,very satisfied with the quality.,positive
+199,product stopped working after few days.,negative
+200,product stopped working after few days.,negative
