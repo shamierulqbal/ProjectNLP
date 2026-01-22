@@ -29,32 +29,35 @@ st.set_page_config(
     layout="wide"
 )
 
-# Professional CSS - Diperkemas untuk tulisan HITAM dalam metrik
+# Professional CSS - Updated for WHITE text visibility
 st.markdown("""
     <style>
-    /* Mengubah warna latar belakang aplikasi (gelap) */
+    /* Main background */
     .stApp {
         background-color: #0e1117;
     }
     
-    /* Mengubah kotak metrik menjadi putih dengan tulisan HITAM */
-    [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {
-        color: #000000 !important;
-    }
-    
+    /* Metric container boxes */
     [data-testid="metric-container"] {
-        background-color: #ffffff;
-        border: 1px solid #e6e9ef;
+        background-color: rgba(255, 255, 255, 0.05); /* Light transparent background */
+        border: 1px solid rgba(255, 255, 255, 0.1);
         padding: 15px;
         border-radius: 10px;
         text-align: center;
     }
+
+    /* Force metric labels and values to be WHITE */
+    [data-testid="stMetricValue"], 
+    [data-testid="stMetricLabel"] > div {
+        color: #FFFFFF !important;
+    }
     
-    /* Warna butang profesional */
+    /* Professional button style */
     div.stButton > button:first-child {
         background-color: #00416d;
         color: white;
         border-radius: 5px;
+        border: none;
     }
     </style>
     """, unsafe_allow_html=True)
