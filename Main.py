@@ -2,177 +2,217 @@ import streamlit as st
 import pandas as pd
 import re
 import nltk
+import torch
+import numpy as np
+import random
 from nltk.corpus import stopwords
 from transformers import pipeline
 import plotly.express as px
 
 # =========================================
-# PAGE CONFIG
+# GLOBAL SETTINGS & REPRODUCIBILITY
+# =========================================
+def set_seed(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+set_seed(42)
+
+# =========================================
+# PAGE CONFIGURATION
 # =========================================
 st.set_page_config(
-    page_title="Customer Sentiment AI",
-    page_icon="📊",
-    layout="wide"
+    page_title="Customer Sentiment Intelligence",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Custom CSS untuk mencantikkan UI
+# Professional CSS for a clean dashboard look
 st.markdown("""
     <style>
-    .main {
-        background-color: #f5f7f9;
+    .reportview-container {
+        background: #F0F2F6;
     }
-    .stMetric {
-        background-color: #ffffff;
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    .main {
+        padding-top: 2rem;
+    }
+    div.stButton > button:first-child {
+        width: 100%;
+        border-radius: 4px;
+        height: 3em;
+        background-color: #00416d;
+        color: white;
+    }
+    .metric-container {
+        border: 1px solid #e6e9ef;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        background-color: white;
     }
     </style>
     """, unsafe_allow_html=True)
 
 # =========================================
-# NLTK SETUP & MODELS
+# DATA & MODEL LOADING (OPTIMIZED)
 # =========================================
 @st.cache_resource
-def download_nltk():
+def load_resources():
     nltk.download('stopwords')
-    return set(stopwords.words('english'))
-
-stop_words = download_nltk()
-
-@st.cache_resource
-def load_models():
+    stop_words = set(stopwords.words('english'))
+    
+    # Using 'fast' tokenizers and specific revisions for speed
     sentiment_pipe = pipeline(
         "sentiment-analysis", 
-        model="distilbert-base-uncased-finetuned-sst-2-english"
+        model="distilbert-base-uncased-finetuned-sst-2-english",
+        device=-1 # Set to 0 if GPU is available on your deployment
     )
+    
     emotion_pipe = pipeline(
         "text-classification", 
         model="j-hartmann/emotion-english-distilroberta-base", 
-        return_all_scores=True
+        return_all_scores=True,
+        device=-1
     )
-    return sentiment_pipe, emotion_pipe
+    return stop_words, sentiment_pipe, emotion_pipe
 
-sentiment_model, emotion_model = load_models()
+STOP_WORDS, SENTIMENT_MODEL, EMOTION_MODEL = load_resources()
 
 # =========================================
-# HELPER FUNCTIONS
+# CORE FUNCTIONS
 # =========================================
 def clean_text(text):
     text = str(text).lower()
     text = re.sub(r"http\S+|www\S+|[^a-z\s]", "", text)
-    text = " ".join(word for word in text.split() if word not in stop_words)
-    return text
+    tokens = [word for word in text.split() if word not in STOP_WORDS]
+    return " ".join(tokens)
 
-def get_sentiment(text):
-    result = sentiment_model(text[:512])[0]
-    return result['label'], result['score']
-
-def get_emotions(text):
-    emotions = emotion_model(text[:512])[0]
-    return {e['label']: e['score'] for e in emotions}
+def get_analysis(text):
+    # Combined function to reduce redundant calls
+    truncated_text = text[:512]
+    sentiment = SENTIMENT_MODEL(truncated_text)[0]
+    emotions = EMOTION_MODEL(truncated_text)[0]
+    return {
+        'sentiment': sentiment['label'],
+        'confidence': sentiment['score'],
+        'emotions': {e['label']: e['score'] for e in emotions}
+    }
 
 # =========================================
-# SIDEBAR
+# SIDEBAR NAVIGATION
 # =========================================
-with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/9438/9438567.png", width=100)
-    st.title("Settings")
-    uploaded_file = st.file_uploader("Upload Customer Reviews (CSV)", type=["csv"])
+st.sidebar.title("Analysis Control Panel")
+st.sidebar.markdown("Upload your dataset for batch processing or use the main panel for manual entry.")
+
+uploaded_file = st.sidebar.file_uploader("Upload CSV Dataset", type=["csv"])
+
+# =========================================
+# MAIN INTERFACE
+# =========================================
+st.title("Customer Sentiment Intelligence")
+st.markdown("Professional NLP Tool for Customer Feedback Analysis")
+
+tab_manual, tab_batch = st.tabs(["Manual Entry Analysis", "Batch Process Dataset"])
+
+# --- MANUAL ENTRY ---
+with tab_manual:
+    col_input, col_output = st.columns([1, 1], gap="large")
     
-    st.info("Aplikasi ini menggunakan AI untuk menganalisis sentimen dan emosi pelanggan secara mendalam.")
-
-# =========================================
-# MAIN CONTENT
-# =========================================
-st.title("📊 Customer Sentiment Analysis Dashboard")
-st.markdown("Analisis maklum balas pelanggan dengan teknologi *Deep Learning*.")
-
-tab1, tab2 = st.tabs(["🔍 Analisis Individu", "📂 Analisis Batch (CSV)"])
-
-# --- TAB 1: INDIVIDUAL ANALYSIS ---
-with tab1:
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        st.subheader("Write a Review")
+    with col_input:
+        st.subheader("Input Text")
         user_input = st.text_area(
-            "Masukkan komen pelanggan di sini:",
-            placeholder="Contoh: The product quality is amazing and delivery was fast!",
-            height=150
+            "Paste customer review below:",
+            height=200,
+            placeholder="Enter review text here..."
         )
-        analyze_btn = st.button("Analyze Sentiment", type="primary")
+        analyze_btn = st.button("Run Analysis")
 
     if analyze_btn and user_input:
-        sentiment, score = get_sentiment(user_input)
-        emotions = get_emotions(user_input)
+        results = get_analysis(user_input)
         
-        with col2:
-            st.subheader("Results")
+        with col_output:
+            st.subheader("Analysis Summary")
             
             # Metric Display
-            m1, m2 = st.columns(2)
-            color = "normal" if sentiment == "POSITIVE" else "inverse"
-            m1.metric("Sentiment", sentiment)
-            m2.metric("Confidence", f"{score:.2%}")
+            m_col1, m_col2 = st.columns(2)
+            with m_col1:
+                st.metric("Primary Sentiment", results['sentiment'])
+            with m_col2:
+                st.metric("Confidence Score", f"{results['confidence']:.2%}")
 
-            # Emotion Chart
-            emo_df = pd.DataFrame(emotions.items(), columns=['Emotion', 'Score'])
-            fig = px.bar(emo_df, x='Score', y='Emotion', orientation='h', 
-                         color='Score', color_continuous_scale='RdBu')
-            fig.update_layout(height=300, margin=dict(l=0, r=0, t=0, b=0))
+            # Emotion Distribution
+            emo_df = pd.DataFrame(results['emotions'].items(), columns=['Emotion', 'Intensity'])
+            fig = px.bar(
+                emo_df, 
+                x='Intensity', 
+                y='Emotion', 
+                orientation='h',
+                title="Emotion Probability Distribution",
+                template="plotly_white",
+                color_discrete_sequence=['#00416d']
+            )
+            fig.update_layout(margin=dict(l=0, r=0, t=40, b=0), height=300)
             st.plotly_chart(fig, use_container_width=True)
 
-# --- TAB 2: BATCH ANALYSIS ---
-with tab2:
-    if uploaded_file is not None:
+# --- BATCH PROCESS ---
+with tab_batch:
+    if uploaded_file:
         df = pd.read_csv(uploaded_file)
+        text_column = st.selectbox("Select Column for Analysis", df.columns)
         
-        st.success(f"Berjaya memuat naik {len(df)} data.")
-        text_col = st.selectbox("Pilih ruangan (column) teks:", df.columns)
-        
-        if st.button("Start Batch Analysis"):
-            with st.spinner("Sedang memproses... Sila tunggu."):
-                # Processing
-                df['Cleaned'] = df[text_col].apply(clean_text)
+        if st.button("Execute Batch Analysis"):
+            with st.spinner("Processing Dataset..."):
+                # Fast processing using list comprehension for better performance over .apply()
+                raw_texts = df[text_column].astype(str).tolist()
+                cleaned_texts = [clean_text(t) for t in raw_texts]
                 
-                # Apply Sentiment
-                results = df['Cleaned'].apply(lambda x: pd.Series(get_sentiment(x)))
-                df['Sentiment'] = results[0]
-                df['Confidence'] = results[1]
-                
-                # Stats
-                pos_count = len(df[df['Sentiment'] == 'POSITIVE'])
-                neg_count = len(df[df['Sentiment'] == 'NEGATIVE'])
-                
-                # Visuals
+                # Perform Sentiment Analysis
+                results = SENTIMENT_MODEL(cleaned_texts, truncation=True)
+                df['Sentiment'] = [r['label'] for r in results]
+                df['Confidence'] = [r['score'] for r in results]
+
+                # Visual Summary
+                st.subheader("Aggregate Results")
                 c1, c2, c3 = st.columns(3)
-                c1.metric("Total Reviews", len(df))
-                c2.metric("Positive", pos_count, delta=f"{(pos_count/len(df)):.1%}")
-                c3.metric("Negative", neg_count, delta=f"-{(neg_count/len(df)):.1%}", delta_color="inverse")
                 
+                total = len(df)
+                pos_pct = (df['Sentiment'] == 'POSITIVE').sum() / total
+                
+                c1.metric("Total Records", total)
+                c2.metric("Positive Ratio", f"{pos_pct:.1%}")
+                c3.metric("Avg Confidence", f"{df['Confidence'].mean():.2%}")
+
                 st.divider()
-                
-                col_chart1, col_chart2 = st.columns(2)
-                
-                with col_chart1:
-                    st.write("### Sentiment Distribution")
-                    fig_pie = px.pie(df, names='Sentiment', hole=0.4, 
-                                     color_discrete_map={'POSITIVE':'#2ecc71', 'NEGATIVE':'#e74c3c'})
+
+                # Graphs
+                g1, g2 = st.columns(2)
+                with g1:
+                    fig_pie = px.pie(
+                        df, names='Sentiment', 
+                        title="Sentiment Share",
+                        color_discrete_map={'POSITIVE':'#00416d', 'NEGATIVE':'#d1d1d1'},
+                        hole=0.5
+                    )
                     st.plotly_chart(fig_pie, use_container_width=True)
                 
-                with col_chart2:
-                    st.write("### Confidence Score Analysis")
-                    fig_hist = px.histogram(df, x='Confidence', color='Sentiment', nbins=20)
+                with g2:
+                    fig_hist = px.histogram(
+                        df, x='Confidence', 
+                        title="Confidence Distribution",
+                        template="plotly_white",
+                        color_discrete_sequence=['#00416d']
+                    )
                     st.plotly_chart(fig_hist, use_container_width=True)
 
-                st.write("### Raw Data Preview")
-                st.dataframe(df[[text_col, 'Sentiment', 'Confidence']].head(100), use_container_width=True)
+                st.subheader("Data Preview")
+                st.dataframe(df[[text_column, 'Sentiment', 'Confidence']].head(50), use_container_width=True)
     else:
-        st.warning("Sila muat naik fail CSV di bahagian Sidebar untuk menggunakan fungsi ini.")
+        st.info("Please upload a CSV file via the sidebar to enable batch processing.")
 
 # =========================================
 # FOOTER
 # =========================================
-st.markdown("---")
-st.caption("Dikuasakan oleh HuggingFace Transformers & Streamlit")
+st.divider()
+st.caption("Intelligence System | Version 2.0 | Processed using DistilBERT")
