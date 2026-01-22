@@ -22,53 +22,114 @@ def set_seed(seed=42):
 set_seed(42)
 
 # =========================================
-# PAGE CONFIGURATION & CUSTOM CSS
+# PAGE CONFIGURATION & ADVANCED UI STYLING
 # =========================================
 st.set_page_config(
     page_title="Customer Sentiment Intelligence",
     layout="wide"
 )
 
-# Professional CSS - Updated for WHITE text visibility
+# Custom CSS for Deep Blue Professional Theme
 st.markdown("""
     <style>
-    /* Main background */
+    /* Main App Background */
     .stApp {
-        background-color: #0e1117;
-    }
-    
-    /* Metric container boxes */
-    [data-testid="metric-container"] {
-        background-color: rgba(255, 255, 255, 0.05); /* Light transparent background */
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 15px;
-        border-radius: 10px;
-        text-align: center;
+        background-color: #0a192f;
+        color: #e6f1ff;
     }
 
-    /* Force metric labels and values to be WHITE */
-    [data-testid="stMetricValue"], 
-    [data-testid="stMetricLabel"] > div {
-        color: #FFFFFF !important;
+    /* Sidebar Styling */
+    section[data-testid="stSidebar"] {
+        background-color: #112240 !important;
+        border-right: 1px solid #233554;
+    }
+
+    /* Metric Card Styling - Dark Blue Glassmorphism */
+    [data-testid="metric-container"] {
+        background-color: #112240;
+        border: 1px solid #233554;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Metric Text Colors */
+    [data-testid="stMetricValue"] {
+        color: #64ffda !important;
+        font-family: 'Inter', sans-serif;
+        font-weight: 700;
+    }
+
+    [data-testid="stMetricLabel"] p {
+        color: #8892b0 !important;
+        font-size: 14px !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    /* Tab Styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 24px;
+        background-color: transparent;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        background-color: transparent;
+        border-radius: 4px;
+        color: #8892b0;
+        font-weight: 600;
+    }
+
+    .stTabs [aria-selected="true"] {
+        color: #64ffda !important;
+        border-bottom-color: #64ffda !important;
+    }
+
+    /* Button Styling */
+    div.stButton > button:first-child {
+        background-color: #64ffda;
+        color: #0a192f;
+        font-weight: bold;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+    }
+
+    div.stButton > button:hover {
+        background-color: #4cd3b5;
+        box-shadow: 0 0 15px rgba(100, 255, 218, 0.4);
+    }
+
+    /* Dataframe & Table Adjustments */
+    .stDataFrame {
+        border: 1px solid #233554;
+        border-radius: 8px;
     }
     
-    /* Professional button style */
-    div.stButton > button:first-child {
-        background-color: #00416d;
-        color: white;
-        border-radius: 5px;
-        border: none;
+    /* Input field styling */
+    .stTextArea textarea {
+        background-color: #112240 !important;
+        color: #ccd6f6 !important;
+        border: 1px solid #233554 !important;
+    }
+
+    hr {
+        border-top: 1px solid #233554;
     }
     </style>
     """, unsafe_allow_html=True)
 
 # =========================================
-# DATA & MODEL LOADING (OPTIMIZED)
+# DATA & MODEL LOADING (CACHED)
 # =========================================
 @st.cache_resource
 def load_resources():
     nltk.download('stopwords')
     stop_words = set(stopwords.words('english'))
+    
+    # Model: RoBERTa for Neutral, Positive, and Negative detection
     sentiment_pipe = pipeline(
         "sentiment-analysis", 
         model="cardiffnlp/twitter-roberta-base-sentiment-latest",
@@ -94,62 +155,90 @@ def process_sentiment_label(label):
     return 'Neutral'
 
 # =========================================
-# MAIN INTERFACE
+# MAIN DASHBOARD INTERFACE
 # =========================================
-st.title("Customer Sentiment Intelligence")
+st.title("Sentiment Intelligence Systems")
+st.markdown("<p style='color: #8892b0;'>Advanced Neural Network Analysis for Customer Feedback</p>", unsafe_allow_html=True)
 
 tab_manual, tab_batch = st.tabs(["Individual Analysis", "Batch Dataset Processing"])
 
+# --- TAB 1: INDIVIDUAL ANALYSIS ---
 with tab_manual:
     col_in, col_out = st.columns(2, gap="large")
     with col_in:
-        user_input = st.text_area("Review Text", height=150, placeholder="Enter review...")
-        run_single = st.button("Analyze Review")
+        st.subheader("Input Stream")
+        user_input = st.text_area("Review Content", height=180, placeholder="Type or paste customer feedback here...")
+        run_single = st.button("Run Intelligence Check")
     
     if run_single and user_input:
         res = SENTIMENT_MODEL(user_input[:512])[0]
         label = process_sentiment_label(res['label'])
         with col_out:
-            st.metric("Sentiment", label)
-            st.metric("Confidence Score", f"{res['score']:.2%}")
+            st.subheader("Classification Outcome")
+            st.metric("Detected Sentiment", label)
+            st.metric("Model Confidence", f"{res['score']:.2%}")
 
+# --- TAB 2: BATCH PROCESS ---
 with tab_batch:
-    uploaded_file = st.sidebar.file_uploader("Upload CSV", type=["csv"])
+    uploaded_file = st.sidebar.file_uploader("Upload CSV Asset", type=["csv"])
     
     if uploaded_file:
         df = pd.read_csv(uploaded_file)
         
-        st.subheader("Configuration")
+        st.subheader("Schema Mapping")
         col_c1, col_c2 = st.columns(2)
         with col_c1:
-            id_col = st.selectbox("Select Customer ID Column", df.columns)
+            id_col = st.selectbox("Customer Identifier Column", df.columns)
         with col_c2:
-            text_col = st.selectbox("Select Review Text Column", df.columns)
+            text_col = st.selectbox("Review Text Column", df.columns)
             
-        if st.button("Execute Batch Analysis"):
-            with st.spinner("Processing..."):
+        if st.button("Execute Pipeline"):
+            with st.spinner("Analyzing high-volume data..."):
+                # Optimize speed using list processing
                 texts = df[text_col].astype(str).tolist()
                 results = SENTIMENT_MODEL(texts, truncation=True, batch_size=8)
                 
                 df['Sentiment'] = [process_sentiment_label(r['label']) for r in results]
                 df['Confidence'] = [r['score'] for r in results]
                 
-                # METRICS SECTION - Tulisan akan berwarna HITAM
+                # Visual Metrics Section
                 st.divider()
                 m1, m2, m3, m4 = st.columns(4)
-                m1.metric("Total Reviews", len(df))
-                m2.metric("Positive", len(df[df['Sentiment'] == 'Positive']))
-                m3.metric("Neutral", len(df[df['Sentiment'] == 'Neutral']))
-                m4.metric("Negative", len(df[df['Sentiment'] == 'Negative']))
+                m1.metric("Total Volume", len(df))
+                m2.metric("Positive Hits", len(df[df['Sentiment'] == 'Positive']))
+                m3.metric("Neutral Hits", len(df[df['Sentiment'] == 'Neutral']))
+                m4.metric("Negative Hits", len(df[df['Sentiment'] == 'Negative']))
                 
-                st.subheader("Sentiment Distribution")
+                # Visual Analytics
+                st.subheader("Sentiment Distribution Profile")
                 dist_df = df['Sentiment'].value_counts().reset_index()
                 dist_df.columns = ['Label', 'Count']
-                fig = px.bar(dist_df, x='Label', y='Count', color='Label',
-                             color_discrete_map={'Positive': '#2ecc71', 'Neutral': '#95a5a6', 'Negative': '#e74c3c'})
+                
+                fig = px.bar(
+                    dist_df, x='Label', y='Count', color='Label',
+                    color_discrete_map={'Positive': '#64ffda', 'Neutral': '#8892b0', 'Negative': '#f07178'},
+                    template="plotly_dark"
+                )
+                fig.update_layout(
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    font_color='#ccd6f6'
+                )
                 st.plotly_chart(fig, use_container_width=True)
 
-                st.subheader("Analysis Results")
-                st.dataframe(df[[id_col, text_col, 'Sentiment', 'Confidence']], use_container_width=True, hide_index=True)
+                st.subheader("Aggregated Results Table")
+                # Structure: ID, Text, Sentiment, Confidence
+                result_display = df[[id_col, text_col, 'Sentiment', 'Confidence']]
+                st.dataframe(result_display, use_container_width=True, hide_index=True)
+                
+                # Export functionality
+                csv = result_display.to_csv(index=False).encode('utf-8')
+                st.download_button("Export Processed Dataset", csv, "processed_intelligence.csv", "text/csv")
     else:
-        st.info("Upload a CSV file in the sidebar to begin batch analysis.")
+        st.info("Awaiting CSV asset upload via the control panel.")
+
+# =========================================
+# FOOTER
+# =========================================
+st.markdown("<br><hr>", unsafe_allow_html=True)
+st.caption("Intelligence Core: RoBERTa Base | Seed: 42 | Response Mode: High-Speed Batching")
