@@ -26,7 +26,7 @@ set_seed(42)
 # PAGE CONFIGURATION & PREMIUM UI STYLING
 # =========================================
 st.set_page_config(
-    page_title="Intelligence Analytics Dashboard",
+    page_title="Sentiment Intelligence Analytics Dashboard",
     layout="wide"
 )
 
